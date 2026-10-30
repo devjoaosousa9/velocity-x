@@ -1,4 +1,4 @@
-export type ColorId = 'obsidian' | 'arctic' | 'electric' | 'crimson' | 'titanium';
+﻿export type ColorId = 'volt' | 'electric' | 'crimson' | 'violet' | 'aqua';
 export type MaterialId = 'aeromesh' | 'carbon' | 'suede';
 export type VariantId = 'road' | 'trail' | 'elite';
 export type PartId =
@@ -23,6 +23,8 @@ export interface ColorOption {
   accent: string;
   /** Swatch used in the UI. */
   swatch: string;
+  /** CSS filter that re-tints the product photo (photo mode). */
+  filter: string;
 }
 
 export interface MaterialOption {

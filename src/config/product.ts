@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ColorOption,
   MaterialOption,
   ProductConfig,
@@ -18,11 +18,12 @@ export const PRODUCT = {
 } as const;
 
 export const COLORS: ColorOption[] = [
-  { id: 'obsidian', name: 'Obsidian Black', upper: '#17191e', midsole: '#dfe2e7', overlay: '#f2f4f7', accent: '#3d7bff', swatch: '#16181d' },
-  { id: 'arctic', name: 'Arctic White', upper: '#e9ecf1', midsole: '#f5f6f8', overlay: '#1b1d22', accent: '#2f6bff', swatch: '#eef1f5' },
-  { id: 'electric', name: 'Electric Blue', upper: '#1f4fe0', midsole: '#eef0f3', overlay: '#0d0f13', accent: '#9fc2ff', swatch: '#2b5cf0' },
-  { id: 'crimson', name: 'Crimson Red', upper: '#b3172a', midsole: '#1b1d22', overlay: '#f2f4f7', accent: '#ff6a4d', swatch: '#b3172a' },
-  { id: 'titanium', name: 'Titanium Silver', upper: '#9aa0aa', midsole: '#e2e5ea', overlay: '#16181d', accent: '#3d7bff', swatch: '#a7adb7' },
+  // `filter` re-tints the real photo for colourway previews (Volt is the photographed original).
+  { id: 'volt', name: 'Volt Yellow', upper: '#c9f230', midsole: '#f1efe6', overlay: '#1f2240', accent: '#2f6bff', swatch: '#c9f230', filter: 'none' },
+  { id: 'electric', name: 'Electric Blue', upper: '#2b6cf0', midsole: '#f1efe6', overlay: '#0d0f13', accent: '#9fc2ff', swatch: '#2b6cf0', filter: 'hue-rotate(140deg) saturate(1.15)' },
+  { id: 'crimson', name: 'Crimson Red', upper: '#d0213a', midsole: '#f1efe6', overlay: '#16181d', accent: '#ff6a4d', swatch: '#d0213a', filter: 'hue-rotate(-78deg) saturate(1.25)' },
+  { id: 'violet', name: 'Ultra Violet', upper: '#7b3cf0', midsole: '#f1efe6', overlay: '#16181d', accent: '#c7a6ff', swatch: '#7b3cf0', filter: 'hue-rotate(190deg) saturate(1.1)' },
+  { id: 'aqua', name: 'Aqua Surge', upper: '#19c7b0', midsole: '#f1efe6', overlay: '#16181d', accent: '#2f6bff', swatch: '#19c7b0', filter: 'hue-rotate(95deg)' },
 ];
 
 export const MATERIALS: MaterialOption[] = [
@@ -82,7 +83,7 @@ export const VARIANTS: VariantOption[] = [
     outsoleColor: '#3a2f25',
     glow: 0.6,
     priceDelta: 20,
-    unavailableColors: ['arctic'],
+    unavailableColors: ['violet'],
   },
   {
     id: 'elite',
@@ -103,7 +104,7 @@ export const SIZES: SizeOption[] = [
 ].map((value) => ({ value, inStock: !['7', '11.5', '13'].includes(value) }));
 
 export const DEFAULT_CONFIG: ProductConfig = {
-  color: 'obsidian',
+  color: 'volt',
   material: 'aeromesh',
   variant: 'road',
   size: null,

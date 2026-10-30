@@ -1,6 +1,13 @@
 # VELOCITY X — Beyond Motion
 
-Experiência web imersiva de lançamento de um tênis de corrida **fictício**, renderizado em **3D em tempo real** (WebGL), com narrativa cinematográfica guiada pelo scroll, vista explodida com peças reais, configurador de cores/materiais/variantes e um carrinho demonstrativo.
+Site de campanha de lançamento de um tênis de corrida, com **carrossel de campanha com fotografia real do produto**, narrativa guiada pelo scroll, detalhes técnicos, anatomia anotada, configurador (cores, materiais, variantes, tamanhos) e um carrinho demonstrativo.
+
+O projeto tem duas edições, escolhidas em `src/config/site.ts` (`EXPERIENCE`):
+
+* **`'photo'` (publicada)** — fotografia real do tênis, sem render 3D. Carrossel com autoplay pausável, swipe, setas, teclado e respeito a `prefers-reduced-motion`; recortes art-directed da mesma foto (calcanhar, malha, cadarço, entressola, bico) feitos só com CSS; anatomia com pinos posicionados em coordenadas da foto; galeria de detalhes no configurador. As cores além de *Volt Yellow* (a cor fotografada) são **pré-visualizações simuladas** por filtro de matiz e aparecem rotuladas como tal. O chunk de 3D nunca é baixado nesta edição.
+* **`'3d'`** — o modelo 3D procedural em tempo real (WebGL) descrito abaixo, com vista explodida e turntable.
+
+> **Sobre a foto:** `public/product/shoe-side.webp` é uma imagem de referência de um tênis de terceiros, usada apenas como demonstração de portfólio; marcas e design pertencem aos respectivos donos. Para uso comercial, substitua por fotos próprias/licenciadas (mais ângulos podem ser adicionados em `src/config/photos.ts`).
 
 **Site no ar:** https://devjoaosousa9.github.io/velocity-x/
 

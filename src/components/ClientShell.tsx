@@ -2,6 +2,7 @@
 
 import { ScrollDirector } from '@/animation/ScrollDirector';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { EXPERIENCE } from '@/config/site';
 import { Stage } from './Stage';
 import { CartDrawer } from './ui/CartDrawer';
 
@@ -10,7 +11,7 @@ export function ClientShell() {
   useMotionPreference();
   return (
     <>
-      <Stage />
+      {EXPERIENCE === '3d' && <Stage />}
       <ScrollDirector />
       <CartDrawer />
     </>

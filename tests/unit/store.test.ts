@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+﻿import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG, priceFor } from '@/config/product';
 import { selectCartCount, selectCartTotal, TURNTABLE_LIMITS, useExperience } from '@/store/useExperience';
 
@@ -22,9 +22,9 @@ describe('configurator state', () => {
   it('switches to a valid variant when a colour is not produced in the current one', () => {
     const s = useExperience.getState();
     s.setVariant('trail');
-    s.setColor('arctic'); // Trail is not made in Arctic White
+    s.setColor('violet'); // Trail is not made in Ultra Violet
     const { config, notice } = useExperience.getState();
-    expect(config.color).toBe('arctic');
+    expect(config.color).toBe('violet');
     expect(config.variant).toBe('road');
     expect(notice).toMatch(/switched to Road/);
   });
@@ -48,7 +48,7 @@ describe('configurator state', () => {
 
   it('restores the original configuration', () => {
     const s = useExperience.getState();
-    s.setColor('titanium');
+    s.setColor('aqua');
     s.setMaterial('suede');
     s.setSize('10');
     s.rotateBy(1.2, 0.3);

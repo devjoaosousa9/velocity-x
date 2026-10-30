@@ -1,3 +1,6 @@
+import { EXPERIENCE } from '@/config/site';
+import { ProductVisual } from '../photo/ProductVisual';
+
 const STATS = [
   { value: '212', unit: 'g', label: 'Weight, US 9' },
   { value: '38', unit: 'mm', label: 'Heel stack' },
@@ -18,6 +21,8 @@ export function Story() {
             <span className="line-mask"><span data-line>strides.</span></span>
           </h2>
         </div>
+
+        {EXPERIENCE === 'photo' && <ProductVisual crop="rocker" className="story__photo" />}
 
         <div className="story__columns">
           <p className="body-lg" data-reveal>

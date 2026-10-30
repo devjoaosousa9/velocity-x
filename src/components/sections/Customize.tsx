@@ -1,12 +1,50 @@
 'use client';
 
-import { useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { formatPrice, priceFor } from '@/config/product';
+import { CROPS, type CropId } from '@/config/photos';
+import { EXPERIENCE } from '@/config/site';
 import { useExperience } from '@/store/useExperience';
 import { ColorSwatches, MaterialOptions, Notice, SizeSelector, VariantOptions } from '../ui/Options';
 import { FallbackSlot } from '../fallback/FallbackSlot';
+import { ProductVisual } from '../photo/ProductVisual';
+import { PhotoCrop } from '../photo/PhotoCrop';
 
 const STEP = Math.PI / 8;
+
+const VIEWS: { crop: CropId; label: string }[] = [
+  { crop: 'full', label: 'Profile' },
+  { crop: 'heel', label: 'Heel' },
+  { crop: 'knit', label: 'Knit' },
+  { crop: 'lacing', label: 'Lacing' },
+  { crop: 'foam', label: 'Midsole' },
+  { crop: 'rocker', label: 'Toe' },
+];
+
+/** Photo edition of the viewer: detail views like a product page gallery. */
+function PhotoViewer() {
+  const [view, setView] = useState<CropId>('full');
+  return (
+    <div className="photo-viewer">
+      <ProductVisual crop={view} className="photo-viewer__main" />
+      <div className="photo-viewer__thumbs" role="group" aria-label="Choose a detail view">
+        {VIEWS.map((v) => (
+          <button
+            key={v.crop}
+            type="button"
+            className="thumb"
+            aria-pressed={view === v.crop}
+            aria-label={`${v.label} view`}
+            onClick={() => setView(v.crop)}
+          >
+            <PhotoCrop crop={CROPS[v.crop]} decorative className="thumb__img" />
+            <span className="thumb__label mono">{v.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function Customize() {
   const rotateBy = useExperience((s) => s.rotateBy);
@@ -54,6 +92,9 @@ export function Customize() {
     <section id="customize" className="customize" data-chapter="05" aria-labelledby="customize-title">
       <div id="customize-stage" className="customize__sticky">
         <div className="container customize__grid">
+          {EXPERIENCE === 'photo' ? (
+            <PhotoViewer />
+          ) : (
           <div
             className="turntable"
             role="group"
@@ -90,6 +131,7 @@ export function Customize() {
               </button>
             </div>
           </div>
+          )}
 
           <div className="glass-card config-panel">
             <div className="config-panel__head">

@@ -1,4 +1,4 @@
-import { NAV, SOCIALS } from '@/config/site';
+import { EXPERIENCE, NAV, PHOTO_CREDIT, SOCIALS } from '@/config/site';
 import { PRODUCT } from '@/config/product';
 import { Logo } from './Logo';
 
@@ -19,6 +19,7 @@ export function Footer() {
               {PRODUCT.name} is a fictional concept product created for a creative-development portfolio. No real products
               are sold on this site.
             </p>
+            {EXPERIENCE === 'photo' && <p className="muted fine-print">{PHOTO_CREDIT}</p>}
           </div>
           <nav className="footer-col" aria-label="Experience">
             <h2 className="footer-col__title mono">Experience</h2>

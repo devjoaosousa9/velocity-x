@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DEFAULT_CONFIG } from '@/config/product';
@@ -34,11 +34,11 @@ describe('colour swatches', () => {
 
   it('supports arrow-key navigation (radiogroup pattern)', async () => {
     render(<ColorSwatches />);
-    const first = screen.getByRole('radio', { name: 'Obsidian Black' });
+    const first = screen.getByRole('radio', { name: 'Volt Yellow' });
     first.focus();
     await userEvent.keyboard('{ArrowRight}');
-    expect(useExperience.getState().config.color).toBe('arctic');
-    expect(screen.getByRole('radio', { name: 'Arctic White' })).toHaveFocus();
+    expect(useExperience.getState().config.color).toBe('electric');
+    expect(screen.getByRole('radio', { name: 'Electric Blue' })).toHaveFocus();
   });
 });
 

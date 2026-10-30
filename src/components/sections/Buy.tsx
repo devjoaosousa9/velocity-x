@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { formatPrice, getColor, getMaterial, getVariant, priceFor, PRODUCT } from '@/config/product';
 import { useExperience } from '@/store/useExperience';
 import { ColorSwatches, Notice, SizeSelector } from '../ui/Options';
-import { FallbackSlot } from '../fallback/FallbackSlot';
+import { ProductVisual } from '../photo/ProductVisual';
 
 export function Buy() {
   const config = useExperience((s) => s.config);
@@ -15,7 +15,7 @@ export function Buy() {
   return (
     <section id="buy" className="buy" data-chapter="07" aria-labelledby="buy-title">
       <div className="container buy__grid">
-        <FallbackSlot className="buy__fallback" />
+        <ProductVisual crop="full" className="buy__fallback buy__photo" />
         <div className="glass-card buy__card">
           <p className="kicker mono">07 — Reserve</p>
           <h2 id="buy-title" className="heading-xl">

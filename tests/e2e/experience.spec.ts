@@ -20,9 +20,26 @@ test('renders every section with no console errors or hydration mismatch', async
   for (const id of ['hero', 'technology', 'engineering', 'anatomy', 'customize', 'story', 'buy', 'footer']) {
     await expect(page.locator(`#${id}`)).toHaveCount(1);
   }
-  await expect(page.locator('.stage')).toHaveAttribute('data-status', /ready|unsupported/, { timeout: 30_000 });
+  // Photo edition: the campaign carousel shows the real product photo, and no WebGL canvas is mounted.
+  const carousel = page.getByRole('region', { name: 'Velocity X campaign' });
+  await expect(carousel).toBeVisible();
+  const hero = carousel.locator('.carousel__slide[data-active="true"] img');
+  await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('canvas')).toHaveCount(0);
   expect(errors.filter((e) => /hydrat/i.test(e))).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test('campaign carousel: arrows, dots and keyboard', async ({ page }) => {
+  await page.goto('./');
+  const carousel = page.getByRole('region', { name: 'Velocity X campaign' });
+  await carousel.getByRole('button', { name: 'Next slide' }).click();
+  await expect(carousel.getByRole('button', { name: /Show slide 2/ })).toHaveAttribute('aria-current', 'true');
+  await carousel.getByRole('button', { name: /Show slide 5/ }).click();
+  await expect(carousel.locator('.carousel__slide[data-active="true"]')).toHaveAttribute('aria-label', /^5 of/);
+  await carousel.getByRole('button', { name: 'Previous slide' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(carousel.getByRole('button', { name: /Show slide 6/ })).toHaveAttribute('aria-current', 'true');
 });
 
 test('navigation links move to their sections', async ({ page, isMobile }) => {
@@ -55,7 +72,7 @@ test('configurator: colour, size and bag stay in sync', async ({ page }) => {
   await buy.getByRole('button', { name: 'Add to Bag' }).click();
   const bag = page.getByRole('dialog', { name: /Bag/ });
   await expect(bag).toBeVisible();
-  await expect(bag).toContainText('Electric Blue Â· Carbon Shell Â· US 10');
+  await expect(bag).toContainText('Electric Blue · Carbon Shell · US 10');
   await bag.getByRole('button', { name: 'Increase quantity' }).click();
   await expect(bag.getByRole('heading')).toContainText('(2)');
   await page.keyboard.press('Escape');
@@ -63,25 +80,25 @@ test('configurator: colour, size and bag stay in sync', async ({ page }) => {
 
   await page.locator('#customize').scrollIntoViewIfNeeded();
   await panel.getByRole('button', { name: 'Restore original' }).click();
-  await expect(panel.getByRole('radio', { name: 'Obsidian Black' })).toHaveAttribute('aria-checked', 'true');
+  await expect(panel.getByRole('radio', { name: 'Volt Yellow' })).toHaveAttribute('aria-checked', 'true');
 });
 
-test('keyboard: skip link, focus ring and turntable keys', async ({ page, isMobile }) => {
+test('keyboard: skip link, visible focus and gallery views', async ({ page, isMobile }) => {
   test.skip(isMobile, 'keyboard flow is a desktop concern');
   await page.goto('./');
   await page.keyboard.press('Tab');
   const skip = page.getByRole('link', { name: 'Skip to content' });
   await expect(skip).toBeFocused();
   await page.goto('./#customize');
-  const viewer = page.getByRole('group', { name: /Product viewer/ });
-  await viewer.focus();
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('+');
-  const t = await page.evaluate(() => getComputedStyle(document.activeElement!).borderTopColor);
-  expect(t).not.toBe('rgba(0, 0, 0, 0)');
+  const heel = page.getByRole('button', { name: 'Heel view' });
+  await heel.focus();
+  const outline = await heel.evaluate((el) => getComputedStyle(el).outlineStyle);
+  expect(outline).not.toBe('none');
+  await page.keyboard.press('Enter');
+  await expect(heel).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('falls back to the 2D edition without WebGL', async ({ page }) => {
+test('works without WebGL: the photo edition needs no GPU', async ({ page }) => {
   const errors = collectErrors(page);
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
@@ -93,13 +110,12 @@ test('falls back to the 2D edition without WebGL', async ({ page }) => {
     HTMLCanvasElement.prototype.getContext = patched as HTMLCanvasElement['getContext'];
   });
   await page.goto('./');
-  await expect(page.getByText(/Interactive 3D is unavailable/)).toBeVisible();
-  await expect(page.getByRole('img', { name: /Side view of Velocity X/ }).first()).toBeVisible();
-  await expect(page.locator('.stage canvas')).toHaveCount(0);
-  // The configurator still drives the 2D illustration.
+  await expect(page.getByRole('region', { name: 'Velocity X campaign' })).toBeVisible();
+  await expect(page.getByText(/Interactive 3D is unavailable/)).toHaveCount(0);
+  // The configurator re-tints the real photo and labels the preview as simulated.
   await page.goto('./#customize');
   await page.locator('#customize').getByRole('radio', { name: 'Crimson Red' }).click();
-  await expect(page.getByRole('img', { name: /in Crimson Red/ }).first()).toBeAttached();
+  await expect(page.locator('#customize').getByText('Crimson Red · simulated colourway')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
