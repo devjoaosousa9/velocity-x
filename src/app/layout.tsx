@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Archivo, JetBrains_Mono } from 'next/font/google';
 import { SITE } from '@/config/site';
 import './globals.css';
+import './campaign.css';
 
 const archivo = Archivo({
   subsets: ['latin'],

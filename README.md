@@ -4,7 +4,9 @@ Site de campanha de lançamento de um tênis de corrida, com **carrossel de camp
 
 O projeto tem duas edições, escolhidas em `src/config/site.ts` (`EXPERIENCE`):
 
-* **`'photo'` (publicada)** — fotografia real do tênis, sem render 3D. Carrossel com autoplay pausável, swipe, setas, teclado e respeito a `prefers-reduced-motion`; recortes art-directed da mesma foto (calcanhar, malha, cadarço, entressola, bico) feitos só com CSS; anatomia com pinos posicionados em coordenadas da foto; galeria de detalhes no configurador. As cores além de *Volt Yellow* (a cor fotografada) são **pré-visualizações simuladas** por filtro de matiz e aparecem rotuladas como tal. O chunk de 3D nunca é baixado nesta edição.
+* **`'photo'` (publicada)** — página de campanha cinematográfica com a fotografia real do tênis, sem render 3D (`src/components/campaign/`):
+  hero em "cartão de estúdio" com wordmark gigante e chips de vidro com specs; **tour cinematográfico guiado pelo scroll** (palco sticky + GSAP ScrollTrigger movendo uma "câmera" pela foto: perfil → calcanhar → malha → entressola → bico); **marquee infinito em duas linhas**; **grade bento** com cards de foto e de dados; **painel de produto estilo HUD** (medidor de amortecimento, cor, material, variante, tamanho, resumo e "Add to Bag"); CTA final com formulário demonstrativo e wordmark no rodapé.
+  As cores além de *Volt Yellow* (a cor fotografada) são **pré-visualizações simuladas** por filtro de matiz e aparecem rotuladas como tal. O chunk de 3D nunca é baixado nesta edição.
 * **`'3d'`** — o modelo 3D procedural em tempo real (WebGL) descrito abaixo, com vista explodida e turntable.
 
 > **Sobre a foto:** `public/product/shoe-side.webp` é uma imagem de referência de um tênis de terceiros, usada apenas como demonstração de portfólio; marcas e design pertencem aos respectivos donos. Para uso comercial, substitua por fotos próprias/licenciadas (mais ângulos podem ser adicionados em `src/config/photos.ts`).

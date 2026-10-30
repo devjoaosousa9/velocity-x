@@ -12,7 +12,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
 await page.goto(url);
 await page.waitForFunction(() => {
-  const img = document.querySelector('.carousel__slide[data-active="true"] img');
+  const img = document.querySelector('.chero__shoe img');
   return img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0;
 });
 await page.waitForTimeout(800);

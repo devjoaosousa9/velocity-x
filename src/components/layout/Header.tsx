@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { NAV } from '@/config/site';
+import { EXPERIENCE, NAV } from '@/config/site';
+import { CAMPAIGN_NAV } from '@/config/campaign';
 import { selectCartCount, useExperience } from '@/store/useExperience';
 import { Logo } from './Logo';
+
+const ITEMS = EXPERIENCE === 'photo' ? CAMPAIGN_NAV : NAV;
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,7 +36,7 @@ export function Header() {
   const motionOff = motionPaused || systemReduced;
 
   return (
-    <header className="site-header">
+    <header className={`site-header ${EXPERIENCE === 'photo' ? 'site-header--campaign' : ''}`}>
       <div className="progress" aria-hidden="true">
         <span className="progress__bar" data-progress-bar />
       </div>
@@ -44,7 +47,7 @@ export function Header() {
 
         <nav aria-label="Primary" className="nav-desktop">
           <ul>
-            {NAV.map((item) => (
+            {ITEMS.map((item) => (
               <li key={item.id}>
                 <a href={`#${item.id}`} className="nav-link">
                   {item.label}
@@ -55,9 +58,11 @@ export function Header() {
         </nav>
 
         <div className="site-header__actions">
+          {EXPERIENCE === '3d' && (
           <span className="chapter mono" aria-hidden="true">
             <span data-progress-index>01</span> / 08
           </span>
+          )}
           <button
             type="button"
             className="icon-btn"
@@ -100,7 +105,7 @@ export function Header() {
       <div id="mobile-menu" className="mobile-menu" data-open={menuOpen} hidden={!menuOpen}>
         <nav aria-label="Mobile">
           <ol>
-            {NAV.map((item, i) => (
+            {ITEMS.map((item, i) => (
               <li key={item.id} style={{ ['--i' as string]: i }}>
                 <a href={`#${item.id}`} onClick={() => setMenuOpen(false)}>
                   <span className="mono">0{i + 2}</span>
