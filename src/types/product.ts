@@ -1,59 +1,25 @@
-﻿export type ColorId = 'volt' | 'electric' | 'crimson' | 'violet' | 'aqua';
-export type MaterialId = 'aeromesh' | 'carbon' | 'suede';
-export type VariantId = 'road' | 'trail' | 'elite';
-export type PartId =
-  | 'outsole'
-  | 'midsole'
-  | 'insole'
-  | 'upper'
-  | 'tongue'
-  | 'laces'
-  | 'heelCounter';
+﻿/** The three colourways shipped inside the scanned model (KHR_materials_variants). */
+export type ColorId = 'midnight' | 'beach' | 'street';
+export type WidthId = 'regular' | 'wide';
 
 export interface ColorOption {
   id: ColorId;
   name: string;
-  /** Upper base colour (sRGB hex). */
-  upper: string;
-  /** Midsole foam colour. */
-  midsole: string;
-  /** Welded midfoot cage straps. */
-  overlay: string;
-  /** Accent: laces, heel counter tint, energy line. */
-  accent: string;
-  /** Swatch used in the UI. */
+  /** Material variant name inside the glTF file. */
+  variant: string;
+  description: string;
+  /** Swatch colour sampled from the knit texture. */
   swatch: string;
-  /** CSS filter that re-tints the product photo (photo mode). */
-  filter: string;
+  /** Page accent while this colourway is selected (also used for focus rings). */
+  accent: string;
+  /** Text colour that stays readable on the accent. */
+  onAccent: string;
 }
 
-export interface MaterialOption {
-  id: MaterialId;
+export interface WidthOption {
+  id: WidthId;
   name: string;
   description: string;
-  roughness: number;
-  metalness: number;
-  clearcoat: number;
-  sheen: number;
-  /** Strength of the procedural micro-relief map (0 disables it). */
-  relief: number;
-  pattern: 'knit' | 'weave' | 'none';
-}
-
-export interface VariantOption {
-  id: VariantId;
-  name: string;
-  description: string;
-  /** Multiplier for outsole lug height. */
-  lugScale: number;
-  /** Midsole stack multiplier. */
-  stack: number;
-  outsoleColor: string;
-  /** Emissive intensity of the energy line. */
-  glow: number;
-  priceDelta: number;
-  /** Colours this variant is NOT produced in (drives the "unavailable" state). */
-  unavailableColors: ColorId[];
 }
 
 export interface SizeOption {
@@ -63,14 +29,13 @@ export interface SizeOption {
 
 export interface ProductConfig {
   color: ColorId;
-  material: MaterialId;
-  variant: VariantId;
+  width: WidthId;
   size: string | null;
 }
 
 export interface CartItem {
   key: string;
-  config: Required<{ [K in keyof ProductConfig]: NonNullable<ProductConfig[K]> }>;
+  config: { color: ColorId; width: WidthId; size: string };
   quantity: number;
   unitPrice: number;
 }

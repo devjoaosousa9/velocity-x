@@ -2,12 +2,12 @@
 
 import dynamic from 'next/dynamic';
 import { Component, useEffect, useState, type ReactNode } from 'react';
-import { getColor, getMaterial, getVariant } from '@/config/product';
+import { getColor } from '@/config/product';
 import { useExperience, type QualityTier } from '@/store/useExperience';
 import { probeWebGL } from '@/lib/webgl';
 import { detectInitialTier, parseQualityOverride } from '@/lib/quality';
 
-// The entire three.js / R3F graph is split into its own chunk and never rendered on the server.
+// The whole three.js / R3F graph is its own chunk and never renders on the server.
 const Scene = dynamic(() => import('@/three/Scene'), { ssr: false });
 
 class SceneBoundary extends Component<{ children: ReactNode; onError: (e: Error) => void }, { failed: boolean }> {
@@ -24,9 +24,9 @@ class SceneBoundary extends Component<{ children: ReactNode; onError: (e: Error)
 }
 
 /**
- * Fixed full-viewport 3D stage that sits behind the document. All page content is
- * plain, server-rendered HTML above it, so the site stays readable and indexable
- * whether or not WebGL starts.
+ * Fixed, transparent 3D layer between the page background (where the hero
+ * wordmark lives) and the page content. Everything readable is server-rendered
+ * HTML, so the site works whether or not WebGL starts.
  */
 export function Stage() {
   const status = useExperience((s) => s.renderStatus);
@@ -53,55 +53,76 @@ export function Stage() {
   return (
     <>
       <div className="stage" data-status={status}>
-        {cap && status !== 'unsupported' && status !== 'error' && (
+        {cap && !failed && (
           <SceneBoundary key={attempt} onError={(e) => setRenderStatus('error', e.message)}>
             <Scene cap={cap} />
           </SceneBoundary>
         )}
       </div>
-      <StageLoader visible={status === 'pending'} />
-      <ModelDescription />
       {failed && (
         <div className="stage-notice" role="status">
           <span>
             {status === 'unsupported'
-              ? 'Interactive 3D is unavailable on this device — showing the 2D edition.'
-              : '3D view stopped unexpectedly — showing the 2D edition.'}
+              ? 'This device can’t show the 3D model, so you’re seeing still renders of it.'
+              : 'The 3D model stopped loading. You’re seeing still renders of it.'}
           </span>
           {status === 'error' && (
             <button
               type="button"
-              className="btn btn--ghost btn--sm"
+              className="btn btn--quiet"
               onClick={() => {
                 setRenderStatus('pending');
                 setAttempt((n) => n + 1);
               }}
             >
-              Retry 3D
+              Try 3D again
             </button>
           )}
         </div>
       )}
+      <ModelDescription />
     </>
   );
 }
 
-function StageLoader({ visible }: { visible: boolean }) {
+/** Text alternative for the canvas, kept in sync with the selected colourway. */
+function ModelDescription() {
+  const config = useExperience((s) => s.config);
+  const color = getColor(config.color);
   return (
-    <div className="stage-loader" data-visible={visible} aria-hidden={!visible}>
-      <span className="stage-loader__bar" />
-      <span className="stage-loader__label">Initialising render engine</span>
-    </div>
+    <p className="sr-only" aria-live="polite">
+      3D model of the Velocity X knit runner in {color.name}: {color.description}
+    </p>
   );
 }
 
-/** Text alternative for the canvas, kept in sync with the configuration. */
-function ModelDescription() {
-  const config = useExperience((s) => s.config);
+/** Still render of the selected colourway, shown only when the 3D view can't run. */
+export function StillRender({ className = '' }: { className?: string }) {
+  const status = useExperience((s) => s.renderStatus);
+  const color = useExperience((s) => getColor(s.config.color));
+  if (status !== 'unsupported' && status !== 'error') return null;
+  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   return (
-    <p className="sr-only" aria-live="polite">
-      3D model: Velocity X {getVariant(config.variant).name} in {getColor(config.color).name}, {getMaterial(config.material).name}
-      {config.size ? `, US size ${config.size}` : ''}.
+    // eslint-disable-next-line @next/next/no-img-element -- static export
+    <img
+      className={`still ${className}`}
+      src={`${base}/renders/${color.id}.webp`}
+      width={1200}
+      height={760}
+      alt={`Velocity X in ${color.name}, side view: ${color.description}`}
+    />
+  );
+}
+
+/** Real download progress of the model, shown in the hero until the first frame. */
+export function LoadState() {
+  const status = useExperience((s) => s.renderStatus);
+  const progress = useExperience((s) => s.loadProgress);
+  if (status !== 'pending') return null;
+  return (
+    <p className="load-state" role="status">
+      <span className="load-state__bar" style={{ transform: `scaleX(${progress / 100})` }} aria-hidden="true" />
+      Loading the 3D model ({Math.round(progress)}%)
     </p>
   );
 }

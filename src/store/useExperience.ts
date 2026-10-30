@@ -1,11 +1,10 @@
 import { create } from 'zustand';
-import { DEFAULT_CONFIG, getVariant, isCombinationAvailable, priceFor, SIZES, VARIANTS } from '@/config/product';
-import type { CartItem, ColorId, MaterialId, ProductConfig, VariantId } from '@/types/product';
+import { DEFAULT_CONFIG, getColor, isCombinationAvailable, priceFor, SIZES } from '@/config/product';
+import type { CartItem, ColorId, ProductConfig, WidthId } from '@/types/product';
 
 export type QualityTier = 'high' | 'medium' | 'low';
 export type RenderStatus = 'pending' | 'ready' | 'unsupported' | 'error';
 export type StageMode = 'cinematic' | 'configure';
-export type HotspotId = 'cushioning' | 'aeromesh' | 'grip';
 
 export interface Turntable {
   yaw: number;
@@ -13,7 +12,7 @@ export interface Turntable {
   zoom: number;
 }
 
-export const TURNTABLE_LIMITS = { pitch: 0.6, zoomMin: 0.7, zoomMax: 1.45 } as const;
+export const TURNTABLE_LIMITS = { pitch: 0.45, zoomMin: 0.75, zoomMax: 1.5 } as const;
 const DEFAULT_TURNTABLE: Turntable = { yaw: 0, pitch: 0, zoom: 1 };
 
 interface ExperienceState {
@@ -27,16 +26,18 @@ interface ExperienceState {
   quality: QualityTier;
   renderStatus: RenderStatus;
   renderError: string | null;
+  /** Model download progress, 0-100. */
+  loadProgress: number;
 
   mode: StageMode;
-  activeHotspot: HotspotId | null;
-  /** null = scroll drives the exploded view; 0/1 = user override via button. */
-  explodeOverride: number | null;
+  /** Index of the active step in the scroll tour (-1 when outside it). */
+  tourStep: number;
   turntable: Turntable;
+  /** Bumped on every colourway change so the stage can play its reaction. */
+  colorChanges: number;
 
   setColor: (color: ColorId) => void;
-  setMaterial: (material: MaterialId) => void;
-  setVariant: (variant: VariantId) => void;
+  setWidth: (width: WidthId) => void;
   setSize: (size: string) => void;
   resetConfig: () => void;
   clearNotice: () => void;
@@ -50,10 +51,10 @@ interface ExperienceState {
   toggleMotion: () => void;
   setQuality: (tier: QualityTier) => void;
   setRenderStatus: (status: RenderStatus, error?: string) => void;
+  setLoadProgress: (progress: number) => void;
 
   setMode: (mode: StageMode) => void;
-  setActiveHotspot: (id: HotspotId | null) => void;
-  setExplodeOverride: (value: number | null) => void;
+  setTourStep: (step: number) => void;
   rotateBy: (dYaw: number, dPitch?: number) => void;
   zoomBy: (factor: number) => void;
   resetView: () => void;
@@ -61,7 +62,7 @@ interface ExperienceState {
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-export const cartKey = (c: ProductConfig) => `${c.variant}:${c.color}:${c.material}:${c.size}`;
+export const cartKey = (c: ProductConfig) => `${c.color}:${c.width}:${c.size}`;
 
 export const useExperience = create<ExperienceState>()((set, get) => ({
   config: { ...DEFAULT_CONFIG },
@@ -74,69 +75,63 @@ export const useExperience = create<ExperienceState>()((set, get) => ({
   quality: 'high',
   renderStatus: 'pending',
   renderError: null,
+  loadProgress: 0,
 
   mode: 'cinematic',
-  activeHotspot: null,
-  explodeOverride: null,
+  tourStep: -1,
   turntable: { ...DEFAULT_TURNTABLE },
+  colorChanges: 0,
 
   setColor: (color) => {
-    const { config } = get();
-    if (!isCombinationAvailable(config.variant, color)) {
-      // Keep the colour (the user asked for it) and fall back to the first variant that ships in it.
-      const fallback = VARIANTS.find((v) => isCombinationAvailable(v.id, color));
-      if (!fallback) {
-        set({ notice: 'This colour is not available in any variant.' });
-        return;
-      }
+    const { config, colorChanges } = get();
+    if (color === config.color) return;
+    if (!isCombinationAvailable(config.width, color)) {
+      // Keep the colour the person asked for; fall back to the width it is made in.
       set({
-        config: { ...config, color, variant: fallback.id },
-        notice: `${getVariant(config.variant).name} is not produced in this colour — switched to ${fallback.name}.`,
+        config: { ...config, color, width: 'regular' },
+        colorChanges: colorChanges + 1,
+        notice: `${getColor(color).name} comes in Regular width only, so we switched you to Regular.`,
       });
       return;
     }
-    set({ config: { ...config, color }, notice: null });
+    set({ config: { ...config, color }, colorChanges: colorChanges + 1, notice: null });
   },
-  setMaterial: (material) => set((s) => ({ config: { ...s.config, material }, notice: null })),
-  setVariant: (variant) => {
+  setWidth: (width) => {
     const { config } = get();
-    if (!isCombinationAvailable(variant, config.color)) {
-      set({ notice: `${getVariant(variant).name} is not available in the selected colour.` });
+    if (!isCombinationAvailable(width, config.color)) {
+      set({ notice: `Wide isn't made in ${getColor(config.color).name}. Pick Midnight or Street for Wide.` });
       return;
     }
-    set({ config: { ...config, variant }, notice: null });
+    set({ config: { ...config, width }, notice: null });
   },
   setSize: (size) => {
     const option = SIZES.find((s) => s.value === size);
     if (!option || !option.inStock) {
-      set({ notice: `Size ${size} is currently out of stock.` });
+      set({ notice: `US ${size} is sold out right now.` });
       return;
     }
     set((s) => ({ config: { ...s.config, size }, notice: null }));
   },
   resetConfig: () =>
-    set({ config: { ...DEFAULT_CONFIG }, notice: null, turntable: { ...DEFAULT_TURNTABLE } }),
+    set((s) => ({
+      config: { ...DEFAULT_CONFIG },
+      notice: null,
+      turntable: { ...DEFAULT_TURNTABLE },
+      colorChanges: s.config.color === DEFAULT_CONFIG.color ? s.colorChanges : s.colorChanges + 1,
+    })),
   clearNotice: () => set({ notice: null }),
 
   addToBag: () => {
     const { config, cart } = get();
     if (!config.size) {
-      set({ notice: 'Select a size to add Velocity X to your bag.' });
+      set({ notice: 'Choose a size to add Velocity X to your bag.' });
       return false;
     }
     const key = cartKey(config);
     const existing = cart.find((i) => i.key === key);
     const next = existing
       ? cart.map((i) => (i.key === key ? { ...i, quantity: Math.min(9, i.quantity + 1) } : i))
-      : [
-          ...cart,
-          {
-            key,
-            config: { ...config, size: config.size },
-            quantity: 1,
-            unitPrice: priceFor(config),
-          },
-        ];
+      : [...cart, { key, config: { ...config, size: config.size }, quantity: 1, unitPrice: priceFor(config) }];
     set({ cart: next, notice: null, cartOpen: true });
     return true;
   },
@@ -154,10 +149,10 @@ export const useExperience = create<ExperienceState>()((set, get) => ({
   toggleMotion: () => set((s) => ({ motionPaused: !s.motionPaused })),
   setQuality: (quality) => set({ quality }),
   setRenderStatus: (renderStatus, error) => set({ renderStatus, renderError: error ?? null }),
+  setLoadProgress: (loadProgress) => set({ loadProgress }),
 
   setMode: (mode) => set({ mode }),
-  setActiveHotspot: (activeHotspot) => set({ activeHotspot }),
-  setExplodeOverride: (explodeOverride) => set({ explodeOverride }),
+  setTourStep: (tourStep) => set((s) => (s.tourStep === tourStep ? s : { tourStep })),
   rotateBy: (dYaw, dPitch = 0) =>
     set((s) => ({
       turntable: {
@@ -178,7 +173,5 @@ export const useExperience = create<ExperienceState>()((set, get) => ({
 
 /** True when continuous / decorative motion must stop. */
 export const selectMotionReduced = (s: ExperienceState) => s.systemReducedMotion || s.motionPaused;
-
 export const selectCartCount = (s: ExperienceState) => s.cart.reduce((n, i) => n + i.quantity, 0);
-export const selectCartTotal = (s: ExperienceState) =>
-  s.cart.reduce((n, i) => n + i.quantity * i.unitPrice, 0);
+export const selectCartTotal = (s: ExperienceState) => s.cart.reduce((n, i) => n + i.quantity * i.unitPrice, 0);

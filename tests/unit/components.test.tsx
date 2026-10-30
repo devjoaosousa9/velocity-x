@@ -1,13 +1,12 @@
-﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DEFAULT_CONFIG } from '@/config/product';
 import { useExperience } from '@/store/useExperience';
-import { ColorSwatches, SizeSelector } from '@/components/ui/Options';
-import { Buy } from '@/components/sections/Buy';
+import { ColourwayPicker, SizeSelector, WidthPicker } from '@/components/ui/Options';
+import { Colourways } from '@/components/sections/Colourways';
 import { CartDrawer } from '@/components/ui/CartDrawer';
-import { Stage } from '@/components/Stage';
-import { FallbackSlot } from '@/components/fallback/FallbackSlot';
+import { Stage, StillRender, LoadState } from '@/components/Stage';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 vi.mock('next/dynamic', () => ({ default: () => () => null }));
@@ -19,30 +18,37 @@ beforeEach(() => {
     notice: null,
     cartOpen: false,
     renderStatus: 'pending',
+    loadProgress: 0,
     systemReducedMotion: false,
     motionPaused: false,
   });
 });
 
-describe('colour swatches', () => {
-  it('changes the colour on click and reflects it with aria-checked', async () => {
-    render(<ColorSwatches />);
-    await userEvent.click(screen.getByRole('radio', { name: 'Electric Blue' }));
-    expect(useExperience.getState().config.color).toBe('electric');
-    expect(screen.getByRole('radio', { name: 'Electric Blue' })).toHaveAttribute('aria-checked', 'true');
+describe('colourway picker', () => {
+  it('switches between the three real colourways and reflects it with aria-checked', async () => {
+    render(<ColourwayPicker />);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    await userEvent.click(screen.getByRole('radio', { name: /Street/ }));
+    expect(useExperience.getState().config.color).toBe('street');
+    expect(screen.getByRole('radio', { name: /Street/ })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('supports arrow-key navigation (radiogroup pattern)', async () => {
-    render(<ColorSwatches />);
-    const first = screen.getByRole('radio', { name: 'Volt Yellow' });
-    first.focus();
+    render(<ColourwayPicker dots />);
+    screen.getByRole('radio', { name: 'Midnight' }).focus();
     await userEvent.keyboard('{ArrowRight}');
-    expect(useExperience.getState().config.color).toBe('electric');
-    expect(screen.getByRole('radio', { name: 'Electric Blue' })).toHaveFocus();
+    expect(useExperience.getState().config.color).toBe('beach');
+    expect(screen.getByRole('radio', { name: 'Beach' })).toHaveFocus();
   });
 });
 
-describe('size selector', () => {
+describe('width and size', () => {
+  it('marks Wide unavailable in Beach', async () => {
+    useExperience.getState().setColor('beach');
+    render(<WidthPicker />);
+    expect(screen.getByRole('radio', { name: /Wide/ })).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('marks sold-out sizes and ignores them', async () => {
     render(<SizeSelector />);
     const soldOut = screen.getByRole('radio', { name: 'US 13, sold out' });
@@ -54,46 +60,57 @@ describe('size selector', () => {
   });
 });
 
-describe('purchase flow', () => {
-  it('summarises the configuration and adds it to the demo bag', async () => {
+describe('configurator to bag', () => {
+  it('asks for a size, then adds the pair to the demo bag', async () => {
     render(
       <>
-        <Buy />
+        <Colourways />
         <CartDrawer />
       </>,
     );
-    expect(screen.getByText('Demonstration price')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Add to Bag' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add to bag' }));
     expect(useExperience.getState().cart).toHaveLength(0);
-    expect(screen.getAllByRole('status')[0]).toHaveTextContent(/Select a size/);
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent(/Choose a size/);
 
-    await userEvent.click(screen.getAllByRole('radio', { name: 'US 10' })[0]!);
-    const summary = screen.getByLabelText('Your configuration');
-    expect(within(summary).getByText('US M 10')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add to Bag' }));
+    await userEvent.click(screen.getByRole('radio', { name: /Street/ }));
+    await userEvent.click(screen.getByRole('radio', { name: 'US 10', exact: true } as never));
+    await userEvent.click(screen.getByRole('button', { name: 'Add to bag' }));
     expect(useExperience.getState().cart).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Checkout unavailable' })).toBeDisabled();
+    const bag = screen.getByRole('dialog', { hidden: true });
+    expect(within(bag).getByText('Velocity X, Street')).toBeInTheDocument();
+    expect(within(bag).getByRole('button', { name: 'Checkout unavailable', hidden: true })).toBeDisabled();
+  });
+
+  it('turns the shoe from the toolbar', async () => {
+    render(<Colourways />);
+    await userEvent.click(screen.getByRole('button', { name: 'Turn right' }));
+    expect(useExperience.getState().turntable.yaw).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Reset view' }));
+    expect(useExperience.getState().turntable.yaw).toBe(0);
   });
 });
 
-describe('WebGL fallback', () => {
-  it('switches to the 2D edition when WebGL is unavailable', async () => {
+describe('WebGL fallback and loading', () => {
+  it('shows a still render of the selected colourway when WebGL is unavailable', async () => {
+    useExperience.getState().setColor('beach');
     render(
       <>
         <Stage />
-        <FallbackSlot />
+        <StillRender />
       </>,
     );
-    expect(await screen.findByText(/Interactive 3D is unavailable/)).toBeInTheDocument();
-    expect(useExperience.getState().renderStatus).toBe('unsupported');
-    expect(screen.getByRole('img', { name: /Side view of Velocity X/ })).toBeInTheDocument();
+    expect(await screen.findByText(/can’t show the 3D model/)).toBeInTheDocument();
+    const img = screen.getByRole('img', { name: /Velocity X in Beach/ });
+    expect(img.getAttribute('src')).toMatch(/\/renders\/beach\.webp$/);
   });
 
-  it('offers a retry after a render error', async () => {
-    act(() => useExperience.getState().setRenderStatus('error', 'boom'));
-    render(<FallbackSlot />);
-    expect(screen.getByRole('img', { name: /Side view/ })).toBeInTheDocument();
+  it('reports real loading progress until the model is ready', () => {
+    act(() => useExperience.getState().setLoadProgress(42));
+    const { rerender } = render(<LoadState />);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading the 3D model (42%)');
+    act(() => useExperience.getState().setRenderStatus('ready'));
+    rerender(<LoadState />);
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });
 

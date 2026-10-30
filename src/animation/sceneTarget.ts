@@ -12,18 +12,9 @@ export interface SceneTarget {
   tgtX: number;
   tgtY: number;
   tgtZ: number;
-  posX: number;
-  posY: number;
-  posZ: number;
-  rotX: number;
-  rotY: number;
-  rotZ: number;
-  scale: number;
-  explode: number;
+  yaw: number;
   spin: number;
-  bgR: number;
-  bgG: number;
-  bgB: number;
+  portraitDy: number;
 }
 
 export const shotToTarget = (s: Shot): SceneTarget => ({
@@ -33,29 +24,17 @@ export const shotToTarget = (s: Shot): SceneTarget => ({
   tgtX: s.target[0],
   tgtY: s.target[1],
   tgtZ: s.target[2],
-  posX: s.pos[0],
-  posY: s.pos[1],
-  posZ: s.pos[2],
-  rotX: s.rot[0],
-  rotY: s.rot[1],
-  rotZ: s.rot[2],
-  scale: s.scale,
-  explode: s.explode,
+  yaw: s.yaw,
   spin: s.spin,
-  bgR: s.bg[0],
-  bgG: s.bg[1],
-  bgB: s.bg[2],
+  portraitDy: s.portraitDy ?? 0,
 });
 
 export const targetToShot = (t: SceneTarget): Shot => ({
   cam: [t.camX, t.camY, t.camZ],
   target: [t.tgtX, t.tgtY, t.tgtZ],
-  pos: [t.posX, t.posY, t.posZ],
-  rot: [t.rotX, t.rotY, t.rotZ],
-  scale: t.scale,
-  explode: t.explode,
+  yaw: t.yaw,
   spin: t.spin,
-  bg: [t.bgR, t.bgG, t.bgB],
+  portraitDy: t.portraitDy,
 });
 
 export const sceneTarget: SceneTarget = shotToTarget(SHOTS.hero);

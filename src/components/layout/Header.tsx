@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { EXPERIENCE, NAV } from '@/config/site';
-import { CAMPAIGN_NAV } from '@/config/campaign';
+import { NAV } from '@/config/site';
 import { selectCartCount, useExperience } from '@/store/useExperience';
 import { Logo } from './Logo';
-
-const ITEMS = EXPERIENCE === 'photo' ? CAMPAIGN_NAV : NAV;
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,18 +33,18 @@ export function Header() {
   const motionOff = motionPaused || systemReduced;
 
   return (
-    <header className={`site-header ${EXPERIENCE === 'photo' ? 'site-header--campaign' : ''}`}>
+    <header className="site-header">
       <div className="progress" aria-hidden="true">
         <span className="progress__bar" data-progress-bar />
       </div>
       <div className="site-header__inner">
-        <a href="#hero" className="brand" aria-label="Velocity X — back to top">
+        <a href="#hero" className="brand" aria-label="Velocity X, back to top">
           <Logo />
         </a>
 
         <nav aria-label="Primary" className="nav-desktop">
           <ul>
-            {ITEMS.map((item) => (
+            {NAV.map((item) => (
               <li key={item.id}>
                 <a href={`#${item.id}`} className="nav-link">
                   {item.label}
@@ -58,11 +55,6 @@ export function Header() {
         </nav>
 
         <div className="site-header__actions">
-          {EXPERIENCE === '3d' && (
-          <span className="chapter mono" aria-hidden="true">
-            <span data-progress-index>01</span> / 08
-          </span>
-          )}
           <button
             type="button"
             className="icon-btn"
@@ -73,16 +65,21 @@ export function Header() {
             aria-label={motionOff ? 'Resume animations' : 'Pause animations'}
           >
             {motionOff ? (
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                 <path d="M8 5.5v13l10-6.5z" fill="currentColor" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                 <path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" />
               </svg>
             )}
           </button>
-          <button type="button" className="bag-btn" onClick={() => setCartOpen(true)} aria-label={`Open bag, ${count} item${count === 1 ? '' : 's'}`}>
+          <button
+            type="button"
+            className="bag-btn"
+            onClick={() => setCartOpen(true)}
+            aria-label={`Open bag, ${count} item${count === 1 ? '' : 's'}`}
+          >
             <span className="bag-btn__label">Bag</span>
             <span className="bag-btn__count tabular" data-filled={count > 0}>
               {count}
@@ -104,16 +101,15 @@ export function Header() {
 
       <div id="mobile-menu" className="mobile-menu" data-open={menuOpen} hidden={!menuOpen}>
         <nav aria-label="Mobile">
-          <ol>
-            {ITEMS.map((item, i) => (
-              <li key={item.id} style={{ ['--i' as string]: i }}>
+          <ul>
+            {NAV.map((item) => (
+              <li key={item.id}>
                 <a href={`#${item.id}`} onClick={() => setMenuOpen(false)}>
-                  <span className="mono">0{i + 2}</span>
                   {item.label}
                 </a>
               </li>
             ))}
-          </ol>
+          </ul>
         </nav>
       </div>
     </header>

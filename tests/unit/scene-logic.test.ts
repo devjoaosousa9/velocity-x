@@ -1,75 +1,77 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { adaptShotForAspect, SCRIPT, SHOTS } from '@/config/shots';
 import { buildMasterTimeline } from '@/animation/buildMasterTimeline';
 import { sceneTarget } from '@/animation/sceneTarget';
-import { PARTS, partProgress } from '@/config/parts';
+import { COLORS, MODEL } from '@/config/product';
+import { TOUR } from '@/config/tour';
 import { detectInitialTier, stepTier } from '@/lib/quality';
-import { halfWidth, hermite, midsoleTop, upperTop, yBottom } from '@/three/geometry/shoeProfile';
 
 describe('central timeline', () => {
-  it('gives every scripted section a contiguous, ordered slice', () => {
+  it('gives every scripted section a contiguous one-unit slice', () => {
     const { ranges, tl } = buildMasterTimeline();
     expect(ranges.map((r) => r.section)).toEqual(SCRIPT.map((s) => s.section));
     ranges.forEach((r, i) => {
-      expect(r.end).toBeGreaterThan(r.start);
+      expect(r.end - r.start).toBeCloseTo(1, 6);
       if (i > 0) expect(r.start).toBeCloseTo(ranges[i - 1]!.end, 6);
     });
     tl.kill();
   });
 
-  it('lands exactly on each section key shot when seeked to its end', () => {
+  it('lands exactly on each tour shot at its step centre', () => {
     const { ranges, tl } = buildMasterTimeline();
-    ranges.forEach((r, i) => {
-      tl.time(r.end);
-      const last = SHOTS[SCRIPT[i]!.keys.at(-1)!];
-      expect(sceneTarget.camZ).toBeCloseTo(last.cam[2], 5);
-      expect(sceneTarget.explode).toBeCloseTo(last.explode, 5);
+    const tour = ranges.find((r) => r.section === 'tour')!;
+    const script = SCRIPT.find((s) => s.section === 'tour')!;
+    script.keys.forEach((key, i) => {
+      tl.time(tour.start + script.marks[i]!);
+      expect(sceneTarget.camX).toBeCloseTo(SHOTS[key].cam[0], 5);
+      expect(sceneTarget.tgtY).toBeCloseTo(SHOTS[key].target[1], 5);
     });
     tl.time(0);
     expect(sceneTarget.camZ).toBeCloseTo(SHOTS.hero.cam[2], 5);
     tl.kill();
   });
+
+  it('has one tour mark per tour step', () => {
+    const script = SCRIPT.find((s) => s.section === 'tour')!;
+    expect(script.keys).toHaveLength(TOUR.length);
+    expect(script.marks).toEqual(TOUR.map((_, i) => (i + 0.5) / TOUR.length));
+  });
 });
 
 describe('responsive framing', () => {
   it('leaves wide screens untouched', () => {
-    expect(adaptShotForAspect(SHOTS.rotate, 1.9)).toBe(SHOTS.rotate);
+    expect(adaptShotForAspect(SHOTS.side, 1.9)).toBe(SHOTS.side);
   });
-  it('re-centres the product and pulls back on portrait screens', () => {
-    const phone = adaptShotForAspect(SHOTS.rotate, 0.44);
-    expect(Math.abs(phone.pos[0])).toBeLessThan(0.01);
-    expect(phone.cam[2]).toBeGreaterThan(SHOTS.rotate.cam[2] * 1.5);
-  });
-});
-
-describe('exploded view staging', () => {
-  it('keeps parts assembled at 0 and fully separated at 1', () => {
-    PARTS.forEach((p) => {
-      expect(partProgress(0, p.order)).toBe(0);
-      expect(partProgress(1, p.order)).toBeCloseTo(1, 6);
-    });
-  });
-  it('staggers later parts behind earlier ones', () => {
-    expect(partProgress(0.4, 0)).toBeGreaterThan(partProgress(0.4, 6));
+  it('re-centres the product and pulls the camera back on phones', () => {
+    const phone = adaptShotForAspect(SHOTS.configure, 0.44);
+    expect(Math.abs(phone.target[0])).toBeLessThan(0.01);
+    const dist = (s: typeof phone) => Math.hypot(...s.cam.map((c, i) => c - s.target[i]!));
+    expect(dist(phone)).toBeGreaterThan(dist(SHOTS.configure) * 1.8);
   });
 });
 
-describe('shoe profile', () => {
-  it('rounds to zero width at heel and toe', () => {
-    expect(halfWidth(0)).toBeCloseTo(0, 6);
-    expect(halfWidth(1)).toBeCloseTo(0, 6);
-    expect(halfWidth(0.75)).toBeGreaterThan(0.4);
+describe('the real model', () => {
+  const glb = readFileSync(resolve(__dirname, '../../public/models/shoe.glb'));
+  const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString());
+
+  it('ships one material variant per colourway', () => {
+    const names = json.extensions.KHR_materials_variants.variants.map((v: { name: string }) => v.name);
+    expect(names).toEqual(COLORS.map((c) => c.variant));
   });
-  it('stacks layers in the right order everywhere', () => {
-    for (let t = 0.02; t < 1; t += 0.05) {
-      expect(midsoleTop(t)).toBeGreaterThan(yBottom(t));
-      expect(upperTop(t)).toBeGreaterThan(midsoleTop(t));
-    }
+
+  it('is compressed for the web (meshopt geometry, WebP textures) and stays under 2 MB', () => {
+    expect(json.extensionsUsed).toEqual(expect.arrayContaining(['EXT_meshopt_compression', 'EXT_texture_webp']));
+    expect(glb.length).toBeLessThan(2 * 1024 * 1024);
   });
-  it('hermite passes through its knots', () => {
-    const k = [[0, 1], [0.5, 3], [1, 2]] as const;
-    expect(hermite(k, 0.5)).toBeCloseTo(3, 6);
-    expect(hermite(k, 1)).toBe(2);
+
+  it('quotes measurements that match the scan', () => {
+    // Bounding box of the source scan in metres (Khronos sample asset).
+    const length = 0.15055 - -0.14733;
+    const width = 0.06275 - -0.05305;
+    expect(MODEL.lengthMm).toBe(Math.round(length * 1000));
+    expect(MODEL.widthMm).toBe(Math.round(width * 1000));
   });
 });
 

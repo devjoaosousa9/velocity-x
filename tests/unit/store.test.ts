@@ -8,33 +8,38 @@ const reset = () =>
     cart: [],
     notice: null,
     cartOpen: false,
+    colorChanges: 0,
     turntable: { yaw: 0, pitch: 0, zoom: 1 },
   });
 
 describe('configurator state', () => {
   beforeEach(reset);
 
-  it('selects a colour', () => {
-    useExperience.getState().setColor('electric');
-    expect(useExperience.getState().config.color).toBe('electric');
+  it('selects a colourway and counts the change for the stage reaction', () => {
+    useExperience.getState().setColor('street');
+    expect(useExperience.getState().config.color).toBe('street');
+    expect(useExperience.getState().colorChanges).toBe(1);
+    useExperience.getState().setColor('street');
+    expect(useExperience.getState().colorChanges).toBe(1);
   });
 
-  it('switches to a valid variant when a colour is not produced in the current one', () => {
+  it('falls back to Regular when a colourway is not made in Wide', () => {
     const s = useExperience.getState();
-    s.setVariant('trail');
-    s.setColor('violet'); // Trail is not made in Ultra Violet
+    s.setWidth('wide');
+    expect(useExperience.getState().config.width).toBe('wide');
+    s.setColor('beach'); // Beach is Regular only
     const { config, notice } = useExperience.getState();
-    expect(config.color).toBe('violet');
-    expect(config.variant).toBe('road');
-    expect(notice).toMatch(/switched to Road/);
+    expect(config.color).toBe('beach');
+    expect(config.width).toBe('regular');
+    expect(notice).toMatch(/Regular width only/);
   });
 
-  it('refuses a variant that is unavailable in the selected colour', () => {
+  it('refuses Wide in a colourway that does not ship in it', () => {
     const s = useExperience.getState();
-    s.setColor('crimson');
-    s.setVariant('elite');
-    expect(useExperience.getState().config.variant).toBe('road');
-    expect(useExperience.getState().notice).toMatch(/not available/);
+    s.setColor('beach');
+    s.setWidth('wide');
+    expect(useExperience.getState().config.width).toBe('regular');
+    expect(useExperience.getState().notice).toMatch(/Wide isn't made in Beach/);
   });
 
   it('selects in-stock sizes and rejects sold-out ones', () => {
@@ -43,13 +48,13 @@ describe('configurator state', () => {
     expect(useExperience.getState().config.size).toBe('9');
     s.setSize('13');
     expect(useExperience.getState().config.size).toBe('9');
-    expect(useExperience.getState().notice).toMatch(/out of stock/);
+    expect(useExperience.getState().notice).toMatch(/sold out/);
   });
 
-  it('restores the original configuration', () => {
+  it('starts over from the original configuration', () => {
     const s = useExperience.getState();
-    s.setColor('aqua');
-    s.setMaterial('suede');
+    s.setColor('street');
+    s.setWidth('wide');
     s.setSize('10');
     s.rotateBy(1.2, 0.3);
     s.resetConfig();
@@ -57,7 +62,7 @@ describe('configurator state', () => {
     expect(useExperience.getState().turntable).toEqual({ yaw: 0, pitch: 0, zoom: 1 });
   });
 
-  it('clamps turntable pitch and zoom to safe limits', () => {
+  it('clamps turntable tilt and zoom to safe limits', () => {
     const s = useExperience.getState();
     s.rotateBy(0, 10);
     s.zoomBy(100);
@@ -74,24 +79,24 @@ describe('demo bag', () => {
   it('requires a size before adding', () => {
     expect(useExperience.getState().addToBag()).toBe(false);
     expect(useExperience.getState().cart).toHaveLength(0);
-    expect(useExperience.getState().notice).toMatch(/Select a size/);
+    expect(useExperience.getState().notice).toMatch(/Choose a size/);
   });
 
-  it('adds, merges identical configurations and totals correctly', () => {
+  it('adds, merges identical pairs and totals correctly', () => {
     const s = useExperience.getState();
     s.setSize('9');
     s.addToBag();
     s.addToBag();
-    s.setVariant('elite');
+    s.setWidth('wide');
     s.addToBag();
     const state = useExperience.getState();
     expect(state.cart).toHaveLength(2);
     expect(selectCartCount(state)).toBe(3);
-    expect(selectCartTotal(state)).toBe(priceFor({ variant: 'road' }) * 2 + priceFor({ variant: 'elite' }));
+    expect(selectCartTotal(state)).toBe(priceFor({ width: 'regular' }) * 2 + priceFor({ width: 'wide' }));
     expect(state.cartOpen).toBe(true);
   });
 
-  it('updates quantity within 1-9 and removes at zero', () => {
+  it('keeps quantity between 1 and 9 and removes at zero', () => {
     const s = useExperience.getState();
     s.setSize('9');
     s.addToBag();

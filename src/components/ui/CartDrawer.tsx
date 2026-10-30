@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { formatPrice, getColor, getMaterial, getVariant, PRODUCT } from '@/config/product';
+import { formatPrice, getColor, getWidth, PRODUCT } from '@/config/product';
 import { selectCartTotal, useExperience } from '@/store/useExperience';
 
 /**
@@ -47,7 +47,7 @@ export function CartDrawer() {
         </header>
 
         {cart.length === 0 ? (
-          <p className="drawer__empty">Your bag is empty. Configure your pair and add it here.</p>
+          <p className="drawer__empty">Your bag is empty. Pick a colourway and a size, then add your pair.</p>
         ) : (
           <ul className="drawer__list">
             {cart.map((item) => {
@@ -57,10 +57,10 @@ export function CartDrawer() {
                   <span className="bag-item__swatch" style={{ background: color.swatch }} aria-hidden="true" />
                   <div className="bag-item__info">
                     <p className="bag-item__name">
-                      {PRODUCT.name} {getVariant(item.config.variant).name}
+                      {PRODUCT.name}, {color.name}
                     </p>
                     <p className="bag-item__meta">
-                      {color.name} · {getMaterial(item.config.material).name} · US {item.config.size}
+                      US {item.config.size}, {getWidth(item.config.width).name} width
                     </p>
                     <div className="qty" role="group" aria-label={`Quantity for ${color.name}, size ${item.config.size}`}>
                       <button type="button" onClick={() => updateQuantity(item.key, item.quantity - 1)} aria-label="Decrease quantity">

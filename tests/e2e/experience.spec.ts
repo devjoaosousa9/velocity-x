@@ -12,94 +12,94 @@ function collectErrors(page: Page) {
   return errors;
 }
 
-test('renders the campaign with the real photo, no errors and no WebGL', async ({ page }) => {
+const ready = (page: Page) =>
+  expect(page.locator('.stage')).toHaveAttribute('data-status', /ready|unsupported/, { timeout: 45_000 });
+
+test('renders the real 3D shoe with no errors or hydration mismatch', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('./');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Engineered');
-  for (const id of ['hero', 'tour', 'engineering', 'configure', 'drop', 'footer']) {
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('knit runner');
+  for (const id of ['hero', 'tour', 'colourways', 'details', 'reserve', 'footer']) {
     await expect(page.locator(`#${id}`)).toHaveCount(1);
   }
-  const hero = page.locator('.chero__shoe img');
-  await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0);
-  await expect(page.locator('canvas')).toHaveCount(0);
+  await ready(page);
+  await expect(page.locator('.stage canvas')).toHaveCount(1);
+  await expect(page.getByText(/Materials Variants Shoe/).first()).toBeAttached();
   expect(errors).toEqual([]);
 });
 
-test('scroll tour advances its steps as you scroll', async ({ page }) => {
+test('scroll tour reports each step', async ({ page }) => {
   await page.goto('./');
-  const tour = page.locator('#tour');
-  const steps = tour.locator('.tour__steps li');
-  await expect(steps.first()).toHaveAttribute('aria-current', 'step');
-  const box = await tour.boundingBox();
-  await page.evaluate((y) => window.scrollTo(0, y), (box!.y + box!.height) * 0.8);
-  await expect(steps.last()).toHaveAttribute('aria-current', 'step');
-  await expect(tour.locator('.tour__title')).toHaveText('Rolls you forward.');
+  await ready(page);
+  for (const [i, title] of ['One knit, two overlays', 'Pull loops, front and back'].entries()) {
+    await page.locator(`[data-tour-step="${i}"]`).scrollIntoViewIfNeeded();
+    await expect(page.getByRole('heading', { name: title })).toBeInViewport();
+  }
+  // The measured length callout belongs to step one.
+  await page.locator('[data-tour-step="0"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('.dim3d', { hasText: '298 mm' })).toHaveAttribute('data-visible', 'true');
 });
 
 test('navigation links move to their sections', async ({ page, isMobile }) => {
   await page.goto('./');
   if (isMobile) {
     await page.getByRole('button', { name: 'Open menu' }).click();
-    await page.getByRole('navigation', { name: 'Mobile' }).getByRole('link', { name: /Configure/ }).click();
+    await page.getByRole('navigation', { name: 'Mobile' }).getByRole('link', { name: 'Colourways' }).click();
   } else {
-    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Configure' }).click();
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Colourways' }).click();
   }
-  await expect(page).toHaveURL(/#configure$/);
-  await expect(page.locator('#configure-title')).toBeInViewport();
-  // Content jumped over by the nav link is never left hidden.
-  await expect(page.locator('#configure .dash')).toHaveCSS('opacity', '1');
+  await expect(page).toHaveURL(/#colourways$/);
+  await expect(page.locator('#cfg-title')).toBeInViewport();
 });
 
-test('configurator: colour, variant, size and bag stay in sync', async ({ page }) => {
-  await page.goto('./#configure');
-  const dash = page.locator('#configure');
-  await dash.getByRole('radio', { name: 'Electric Blue' }).click();
-  await expect(dash.getByText('Electric Blue · simulated colourway')).toBeVisible();
-  await dash.getByRole('radio', { name: /Carbon Shell/ }).click();
-  await dash.getByRole('radio', { name: 'US 10', exact: true }).click();
-  const summary = dash.getByLabel('Your configuration');
-  await expect(summary).toContainText('Electric Blue');
-  await expect(summary).toContainText('Carbon Shell');
-  await expect(summary).toContainText('US M 10');
+test('configurator: colourway, width, size and bag stay in sync', async ({ page }) => {
+  await page.goto('./#colourways');
+  const cfg = page.locator('#colourways');
+  await cfg.getByRole('radio', { name: /Street/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-colourway', 'street');
+  await cfg.getByRole('radio', { name: /Wide/ }).click();
+  await cfg.getByRole('radio', { name: 'US 10', exact: true }).click();
+  await expect(cfg.getByText('$175')).toBeVisible();
 
-  await dash.getByRole('button', { name: 'Add to Bag' }).click();
+  await cfg.getByRole('button', { name: 'Add to bag' }).click();
   const bag = page.getByRole('dialog', { name: /Bag/ });
   await expect(bag).toBeVisible();
-  await expect(bag).toContainText('Electric Blue · Carbon Shell · US 10');
+  await expect(bag).toContainText('Velocity X, Street');
+  await expect(bag).toContainText('US 10, Wide width');
   await bag.getByRole('button', { name: 'Increase quantity' }).click();
   await expect(bag.getByRole('heading')).toContainText('(2)');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: /Open bag, 2 items/ })).toBeVisible();
 
-  await dash.getByRole('button', { name: 'Restore original' }).click();
-  await expect(dash.getByRole('radio', { name: 'Volt Yellow' })).toHaveAttribute('aria-checked', 'true');
+  await cfg.getByRole('radio', { name: /Beach/ }).click();
+  await expect(cfg.getByRole('radio', { name: /Wide/ })).toHaveAttribute('aria-disabled', 'true');
+  await cfg.getByRole('button', { name: 'Start over' }).click();
+  await expect(cfg.getByRole('radio', { name: /Midnight/ })).toHaveAttribute('aria-checked', 'true');
 });
 
-test('drop list form validates and confirms (demo, nothing sent)', async ({ page }) => {
-  await page.goto('./#drop');
-  const drop = page.locator('#drop');
-  await drop.getByRole('button', { name: 'Join the drop' }).click();
-  await expect(drop.getByRole('alert')).toContainText('valid email');
-  await drop.getByLabel('Email address').fill('runner@example.com');
-  await drop.getByRole('button', { name: 'Join the drop' }).click();
-  await expect(drop.getByRole('status')).toContainText('on the list');
+test('hero colourway dots switch the real model', async ({ page }) => {
+  await page.goto('./');
+  await ready(page);
+  await page.locator('#hero').getByRole('radio', { name: 'Beach' }).click();
+  await expect(page.locator('.current-cw__name')).toHaveText('Beach');
+  await expect(page.locator('html')).toHaveAttribute('data-colourway', 'beach');
 });
 
-test('keyboard: skip link and visible focus', async ({ page, isMobile }) => {
+test('keyboard: skip link, viewer keys and visible focus', async ({ page, isMobile }) => {
   test.skip(isMobile, 'keyboard flow is a desktop concern');
   await page.goto('./');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
-  await page.goto('./#configure');
-  const radio = page.locator('#configure').getByRole('radio', { name: 'Volt Yellow' });
-  await radio.focus();
+  await page.goto('./#colourways');
+  const viewer = page.getByRole('group', { name: /Shoe viewer/ });
+  await viewer.focus();
   await page.keyboard.press('ArrowRight');
-  await expect(page.locator('#configure').getByRole('radio', { name: 'Electric Blue' })).toBeFocused();
+  await page.keyboard.press('+');
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle);
   expect(outline).not.toBe('none');
 });
 
-test('works without WebGL', async ({ page }) => {
+test('falls back to still renders without WebGL', async ({ page }) => {
   const errors = collectErrors(page);
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
@@ -110,7 +110,11 @@ test('works without WebGL', async ({ page }) => {
     HTMLCanvasElement.prototype.getContext = patched as HTMLCanvasElement['getContext'];
   });
   await page.goto('./');
-  await expect(page.locator('.chero__shoe img')).toBeVisible();
+  await expect(page.getByText(/can’t show the 3D model/)).toBeVisible();
+  await expect(page.locator('.stage canvas')).toHaveCount(0);
+  const still = page.getByRole('img', { name: /Velocity X in Midnight/ }).first();
+  await expect(still).toBeVisible();
+  await expect.poll(() => still.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 
@@ -120,9 +124,7 @@ test('respects prefers-reduced-motion', async ({ browser }) => {
   await page.goto('./');
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
   await expect(page.getByRole('button', { name: 'Resume animations' })).toBeDisabled();
-  await expect(page.locator('.marquee__track').first()).toHaveCSS('animation-name', 'none');
-  await page.locator('#engineering').scrollIntoViewIfNeeded();
-  await expect(page.getByRole('heading', { name: 'AeroMesh knit' })).toBeVisible();
+  await expect(page.locator('.hero__mark')).toHaveCSS('animation-name', 'none');
   await context.close();
 });
 

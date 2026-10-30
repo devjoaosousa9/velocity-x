@@ -1,85 +1,42 @@
-import { EXPERIENCE } from '@/config/site';
-import { FallbackSlot } from '../fallback/FallbackSlot';
-import { ProductCarousel } from '../photo/ProductCarousel';
+import { LoadState, StillRender } from '../Stage';
+import { ColourwayPicker } from '../ui/Options';
+import { CurrentColourway } from '../ui/CurrentColourway';
 
-function Ctas() {
-  return (
-    <div className="hero__ctas">
-      <a href="#technology" className="btn btn--primary">
-        Explore the Technology
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path d="M8 2v11M3 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" fill="none" />
-        </svg>
-      </a>
-      <a href="#customize" className="btn btn--ghost">
-        Customize Yours
-      </a>
-    </div>
-  );
-}
-
-function ScrollCue() {
-  return (
-    <a href="#technology" className="scroll-cue mono" aria-label="Scroll to explore the technology">
-      <span>Scroll</span>
-      <span className="scroll-cue__track" aria-hidden="true">
-        <span className="scroll-cue__dot" />
-      </span>
-    </a>
-  );
-}
-
-const Title = ({ className = '' }: { className?: string }) => (
-  <h1 id="hero-title" className={`display hero__title ${className}`}>
-    <span className="line-mask">
-      <span className="hero__line">BEYOND</span>
-    </span>
-    <span className="line-mask">
-      <span className="hero__line hero__line--2">MOTION</span>
-    </span>
-  </h1>
-);
-
+/**
+ * The wordmark sits on the page layer *behind* the transparent WebGL canvas, so
+ * the real shoe turns in front of it - the one bold move on the page.
+ */
 export function Hero() {
-  if (EXPERIENCE === 'photo') {
-    return (
-      <section id="hero" className="hero hero--photo" data-chapter="01" aria-labelledby="hero-title">
-        <div className="container hero__inner">
-          <div className="hero__meta mono">
-            <span>VX-01 · 2026 Launch</span>
-            <span className="hero__meta-right">Race-day collection</span>
-          </div>
-          <div className="hero__lead">
-            <Title />
-          </div>
-          <ProductCarousel />
-          <div className="hero__row">
-            <p className="hero__subtitle">Engineered for the impossible.</p>
-            <Ctas />
-            <ScrollCue />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section id="hero" className="hero" data-chapter="01" aria-labelledby="hero-title">
-      <div className="container hero__inner">
-        <div className="hero__meta mono">
-          <span>VX-01 · 2026 Launch</span>
-          <span className="hero__meta-right">Real-time 3D · Drag-free</span>
-        </div>
-        <FallbackSlot className="hero__fallback" />
-        <div className="hero__bottom">
-          <Title />
-          <div className="hero__row">
-            <p className="hero__subtitle">Engineered for the impossible.</p>
-            <Ctas />
-            <ScrollCue />
+    <section id="hero" className="hero" aria-labelledby="hero-title">
+      <p className="hero__mark" aria-hidden="true">
+        Velocity&nbsp;X
+      </p>
+      <StillRender className="hero__still" />
+      <div className="wrap hero__content">
+        <div className="hero__copy">
+          <h1 id="hero-title" className="hero__title">
+            A knit runner you can turn over in your hands.
+          </h1>
+          <p className="hero__lede">
+            This is a real scan of the shoe, rendered live in your browser. Drag it, look underneath, then pick your
+            colourway and size.
+          </p>
+          <div className="hero__ctas">
+            <a href="#colourways" className="btn btn--primary">
+              Choose your colourway
+            </a>
+            <a href="#tour" className="btn btn--quiet">
+              Look up close
+            </a>
           </div>
+        </div>
+        <div className="hero__aside">
+          <ColourwayPicker dots label="Colourway" />
+          <CurrentColourway />
         </div>
       </div>
+      <LoadState />
     </section>
   );
 }

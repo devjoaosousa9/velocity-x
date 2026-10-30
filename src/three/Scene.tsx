@@ -1,22 +1,19 @@
 'use client';
 
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { selectMotionReduced, useExperience, type QualityTier } from '@/store/useExperience';
+import { useProgress } from '@react-three/drei';
+import { useExperience, type QualityTier } from '@/store/useExperience';
 import { stepTier, TIER_SETTINGS } from '@/lib/quality';
 import { CameraRig } from './CameraRig';
-import { Lighting } from './Lighting';
-import { ProceduralShoe } from './models/ProceduralShoe';
-import { Annotations } from './Annotations';
-
-// Post-processing is only downloaded when a high-tier device actually needs it.
-const Effects = lazy(() => import('./Effects'));
+import { GroundShadow, Lighting } from './Lighting';
+import { RealShoe } from './RealShoe';
+import { Callouts } from './Callouts';
 
 export default function Scene({ cap }: { cap: QualityTier }) {
   const tier = useExperience((s) => s.quality);
-  const config = useExperience((s) => s.config);
-  const reduced = useExperience(selectMotionReduced);
+  const color = useExperience((s) => s.config.color);
   const setRenderStatus = useExperience((s) => s.setRenderStatus);
   const settings = TIER_SETTINGS[tier];
 
@@ -25,9 +22,11 @@ export default function Scene({ cap }: { cap: QualityTier }) {
       // Render only when something changes; the rig keeps invalidating while in motion.
       frameloop="demand"
       dpr={settings.dpr}
-      camera={{ fov: 32, near: 0.1, far: 60, position: [0, 0.6, 9] }}
-      gl={{ antialias: settings.antialias, powerPreference: 'high-performance', alpha: false, stencil: false }}
+      camera={{ fov: 30, near: 0.1, far: 80, position: [2.5, 2, 8] }}
+      // Transparent: the page (and the hero wordmark) shows through behind the shoe.
+      gl={{ antialias: settings.antialias, alpha: true, powerPreference: 'high-performance', stencil: false }}
       onCreated={({ gl }) => {
+        gl.setClearColor(0x000000, 0);
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.05;
         gl.outputColorSpace = THREE.SRGBColorSpace;
@@ -40,22 +39,29 @@ export default function Scene({ cap }: { cap: QualityTier }) {
       aria-hidden="true"
     >
       <AdaptiveQuality cap={cap} />
+      <ReportProgress />
       <Lighting tier={tier} />
-      <CameraRig>
-        <ProceduralShoe config={config} tier={tier} instantMaterials={reduced} />
-        <Annotations />
-      </CameraRig>
-      {settings.bloom && (
-        <Suspense fallback={null}>
-          <Effects />
-        </Suspense>
-      )}
-      <ReadySignal />
+      <Suspense fallback={null}>
+        <CameraRig>
+          <RealShoe color={color} />
+          <GroundShadow tier={tier} />
+          <Callouts />
+        </CameraRig>
+        <ReadySignal />
+      </Suspense>
     </Canvas>
   );
 }
 
-/** Flags the scene as ready after the first frame is actually drawn - no artificial delay. */
+/** Mirrors the loader's real byte progress into the store for the DOM loading state. */
+function ReportProgress() {
+  const { progress } = useProgress();
+  const setLoadProgress = useExperience((s) => s.setLoadProgress);
+  useEffect(() => setLoadProgress(progress), [progress, setLoadProgress]);
+  return null;
+}
+
+/** Flags the scene as ready once the model has loaded and a frame is drawn - no artificial delay. */
 function ReadySignal() {
   const done = useRef(false);
   const setRenderStatus = useExperience((s) => s.setRenderStatus);

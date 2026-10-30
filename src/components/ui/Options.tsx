@@ -1,14 +1,16 @@
 'use client';
 
-import { useId, type KeyboardEvent } from 'react';
-import { COLORS, isCombinationAvailable, MATERIALS, SIZES, VARIANTS } from '@/config/product';
+import { useId, type CSSProperties, type KeyboardEvent } from 'react';
+import { COLORS, isCombinationAvailable, SIZES, WIDTHS } from '@/config/product';
 import { useExperience } from '@/store/useExperience';
 
 /** Arrow-key navigation for radio groups (WAI-ARIA radiogroup pattern). */
 function onRadioKeys(e: KeyboardEvent<HTMLDivElement>) {
   const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
   if (!keys.includes(e.key)) return;
-  const radios = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]:not([aria-disabled="true"])'));
+  const radios = Array.from(
+    e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]:not([aria-disabled="true"])'),
+  );
   const i = radios.indexOf(document.activeElement as HTMLButtonElement);
   if (i < 0 || radios.length === 0) return;
   e.preventDefault();
@@ -20,22 +22,25 @@ function onRadioKeys(e: KeyboardEvent<HTMLDivElement>) {
   radios[next]!.click();
 }
 
-export function ColorSwatches({ compact = false }: { compact?: boolean }) {
+/** Three real colourways. `dots` is the compact hero version. */
+export function ColourwayPicker({ dots = false, label = 'Colourway' }: { dots?: boolean; label?: string }) {
   const color = useExperience((s) => s.config.color);
-  const variant = useExperience((s) => s.config.variant);
   const setColor = useExperience((s) => s.setColor);
-  const label = useId();
-  const current = COLORS.find((c) => c.id === color)!;
+  const id = useId();
 
   return (
-    <fieldset className="option">
-      <legend id={label} className="option__legend">
-        Colour <span className="option__value">{current.name}</span>
-      </legend>
-      <div role="radiogroup" aria-labelledby={label} className="swatches" onKeyDown={onRadioKeys}>
+    <div className={dots ? 'cw-dots' : 'option'}>
+      <p id={id} className={dots ? 'sr-only' : 'option__label'}>
+        {label}
+      </p>
+      <div
+        role="radiogroup"
+        aria-labelledby={id}
+        className={dots ? 'cw-dots__list' : 'cw-list'}
+        onKeyDown={onRadioKeys}
+      >
         {COLORS.map((c) => {
           const selected = c.id === color;
-          const limited = !isCombinationAvailable(variant, c.id);
           return (
             <button
               key={c.id}
@@ -43,90 +48,71 @@ export function ColorSwatches({ compact = false }: { compact?: boolean }) {
               role="radio"
               aria-checked={selected}
               tabIndex={selected ? 0 : -1}
-              aria-label={`${c.name}${limited ? ' (switches variant)' : ''}`}
-              title={c.name}
-              className={`swatch ${compact ? 'swatch--sm' : ''}`}
-              data-selected={selected}
-              style={{ ['--swatch' as string]: c.swatch }}
+              aria-label={dots ? c.name : undefined}
+              className={dots ? 'cw-dot' : 'cw-row'}
+              style={{ '--swatch': c.swatch, '--cw-accent': c.accent } as CSSProperties}
               onClick={() => setColor(c.id)}
-            />
-          );
-        })}
-      </div>
-    </fieldset>
-  );
-}
-
-export function MaterialOptions() {
-  const material = useExperience((s) => s.config.material);
-  const setMaterial = useExperience((s) => s.setMaterial);
-  const label = useId();
-  return (
-    <fieldset className="option">
-      <legend id={label} className="option__legend">Material</legend>
-      <div role="radiogroup" aria-labelledby={label} className="chips" onKeyDown={onRadioKeys}>
-        {MATERIALS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            role="radio"
-            aria-checked={m.id === material}
-            tabIndex={m.id === material ? 0 : -1}
-            className="chip"
-            onClick={() => setMaterial(m.id)}
-          >
-            <span className="chip__title">{m.name}</span>
-            <span className="chip__sub">{m.description}</span>
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-export function VariantOptions() {
-  const variant = useExperience((s) => s.config.variant);
-  const color = useExperience((s) => s.config.color);
-  const setVariant = useExperience((s) => s.setVariant);
-  const label = useId();
-  return (
-    <fieldset className="option">
-      <legend id={label} className="option__legend">Variant</legend>
-      <div role="radiogroup" aria-labelledby={label} className="chips chips--row" onKeyDown={onRadioKeys}>
-        {VARIANTS.map((v) => {
-          const available = isCombinationAvailable(v.id, color);
-          return (
-            <button
-              key={v.id}
-              type="button"
-              role="radio"
-              aria-checked={v.id === variant}
-              aria-disabled={!available}
-              tabIndex={v.id === variant ? 0 : -1}
-              className="chip"
-              onClick={() => setVariant(v.id)}
-              title={available ? v.description : 'Not produced in this colour'}
             >
-              <span className="chip__title">{v.name}</span>
-              <span className="chip__sub">{available ? v.description : 'Unavailable in this colour'}</span>
+              <span className="cw-swatch" aria-hidden="true" />
+              {!dots && (
+                <span className="cw-row__text">
+                  <span className="cw-row__name">{c.name}</span>
+                  <span className="cw-row__desc">{c.description}</span>
+                </span>
+              )}
             </button>
           );
         })}
       </div>
-    </fieldset>
+    </div>
+  );
+}
+
+export function WidthPicker() {
+  const width = useExperience((s) => s.config.width);
+  const color = useExperience((s) => s.config.color);
+  const setWidth = useExperience((s) => s.setWidth);
+  const id = useId();
+  return (
+    <div className="option">
+      <p id={id} className="option__label">
+        Width
+      </p>
+      <div role="radiogroup" aria-labelledby={id} className="seg" onKeyDown={onRadioKeys}>
+        {WIDTHS.map((w) => {
+          const available = isCombinationAvailable(w.id, color);
+          return (
+            <button
+              key={w.id}
+              type="button"
+              role="radio"
+              aria-checked={w.id === width}
+              aria-disabled={!available}
+              tabIndex={w.id === width ? 0 : -1}
+              className="seg__item"
+              title={available ? w.description : 'Not made in this colourway'}
+              onClick={() => setWidth(w.id)}
+            >
+              <span className="seg__name">{w.name}</span>
+              <span className="seg__desc">{available ? w.description : 'Not in this colourway'}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 export function SizeSelector() {
   const size = useExperience((s) => s.config.size);
   const setSize = useExperience((s) => s.setSize);
-  const label = useId();
+  const id = useId();
   return (
-    <fieldset className="option">
-      <legend id={label} className="option__legend">
-        Size <span className="option__value">{size ? `US M ${size}` : 'Select'}</span>
-      </legend>
-      <div role="radiogroup" aria-labelledby={label} className="sizes" onKeyDown={onRadioKeys}>
+    <div className="option">
+      <p id={id} className="option__label">
+        Size <span className="option__value">{size ? `US ${size}` : 'Choose one'}</span>
+      </p>
+      <div role="radiogroup" aria-labelledby={id} className="sizes" onKeyDown={onRadioKeys}>
         {SIZES.map((s, i) => {
           const selected = s.value === size;
           const focusable = selected || (!size && i === SIZES.findIndex((x) => x.inStock));
@@ -147,7 +133,7 @@ export function SizeSelector() {
           );
         })}
       </div>
-    </fieldset>
+    </div>
   );
 }
 
